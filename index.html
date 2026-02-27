@@ -1730,7 +1730,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
                         console.error('Erro de geolocalização:', err);
                         statusEl.textContent = 'Erro ao obter localização: ' + err.message;
                     },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
                 );
             } else {
                 statusEl.textContent = 'Geolocalização não suportada neste navegador';
