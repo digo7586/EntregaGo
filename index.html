@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RotaExpress - Roteirização inteligente</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mapbox/polyline@1.1.1/src/polyline.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/brands.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Poppins", sans-serif;
+            background: #0f172a;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #sidebar {
+            width: 533px;
+            background: white;
+            color: #000000;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 20px;
+            overflow-y: auto;
+            border-top-left-radius: 15px;
+            border-bottom-left-radius: 15px;
+            border-right: 1px solid #e2e8f0;
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+        }
+
+        .logo i {
+            font-size: 1.6rem;
+            color: #ffffff;
+            background-color: #3b82f6;
+            padding: 12px;
+            border-radius: 15px;
+            /* estilo de botão */
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: all 0.15s ease;
+        }
+
+        .logo span {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin: 0 0 16px;
+            color: #1e293b;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #F7F8F9;
+
+            border-radius: 12px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+
+        .card i {
+            font-size: 1.3rem;
+            color: #2474F5;
+            margin-bottom: 6px;
+        }
+
+        .card-value {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #000000;
+        }
+
+        .card-label {
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        .progress-section {
+            margin: 20px 0 32px;
+        }
+
+        .progress-section label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #475569;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #2474F5;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: #F7F8F9;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+            transform: scale(1.15);
+        }
+
+        .btn-rua {
+            background: #2474F5;
+            color: white;
+            border: none;
+        }
+
+        .btn-cep {
+            background: #f1f5f9;
+            color: #7b7e86;
+            border: none;
+        }
+
+        .btn-scan {
+            background: #f1f5f9;
+            color: #7b7e86;
+            border: none;
+        }
+
+
+        .comment-btn:hover {
+            background: #e0e7ff;
+        }
+
+        .add-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        #address-input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        #add-button {
+            background: #2474F5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0 24px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #stops-list {
+            list-style: none;
+            margin-top: 24px;
+            flex: 1;
+            position: relative;
+            z-index: 10;
+        }
+
+        .stop-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.15s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stop-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .stop-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Ícone de desfazer quando concluído */
+        .undo-icon {
+            color: #f59e0b;
+            /* amarelo para destacar que pode desfazer */
+        }
+
+        .undo-icon:hover {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .action-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .action-icon:hover {
+            background: #f3f4f6;
+            color: #374151;
+            transform: scale(1.08);
+        }
+
+        #start-navigation:hover {
+            background: #28c251;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 255, 115, 0.4);
+        }
+
+       
+
+        .waze-icon {
+            color: #00aaff;
+        }
+
+        .waze-icon:hover {
+            background: #e6f7ff;
+            color: #0099e6;
+        }
+
+        .navigate-icon {
+            color: #4285f4;
+            /* azul do Google Maps */
+        }
+
+        .navigate-icon:hover {
+            background: #e3f2fd;
+            color: #1a73e8;
+        }
+
+       
+
+        /* Número da parada (círculo azul) */
+        .stop-number {
+            min-width: 32px;
+            height: 32px;
+            background: #2474F5;
+            /* azul igual ao botão Rua */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+
+        .stop-item.completed .stop-number {
+            background: #10b981;
+        }
+
+        .stop-content {
+            flex: 1;
+        }
+
+        
+
+        .comment-icon {
+            color: #6366f1;
+        }
+
+        .comment-icon:hover {
+            background: #e0e7ff;
+            color: #4f46e5;
+        }
+
+        .complete-icon {
+            color: #10b981;
+        }
+
+        .complete-icon:hover {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .delete-icon {
+            color: #ef4444;
+        }
+
+        .delete-icon:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .stop-notes {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .stop-actions button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .stop-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .photo-icon {
+            color: #8b5cf6;
+            /* roxo para "sem foto" */
+        }
+
+        .photo-icon.has-photo {
+            color: #10b981;
+            /* verde quando tem foto */
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .photo-icon:hover {
+            background: #f3e8ff;
+            color: #7c3aed;
+            transform: scale(1.1);
+        }
+
+        .complete-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .remove-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-modal-item.complete.completed {
+    color: #f59e0b;           /* amarelo para "Reabrir" */
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.action-modal-item.complete.completed:hover {
+    background: rgba(245, 158, 11, 0.2);
+}
+        .modal-content {
+            background: white;
+            color: #1e293b;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .modal input,
+        .modal textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .cancel {
+            background: #e2e8f0;
+            color: #475569;
+            border: none;
+        }
+
+        .confirm {
+            background: #2474F5;
+            color: white;
+            border: none;
+        }
+
+        
+
+        #start-navigation {
+            margin-top: 16px;
+            background: #34a853;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Loading por parada */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            z-index: 10;
+            -webkit-backdrop-filter: blur(1.5px);
+            backdrop-filter: blur(1.5px);
+            transition: opacity 0.25s ease;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #2474f5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Desabilita interações durante processamento */
+        .stop-item.processing * {
+            pointer-events: none;
+        }
+
+        .stop-item.processing .stop-header,
+        .stop-item.processing .stop-content {
+            opacity: 0.7;
+        }
+
+
+        #status {
+            position: absolute;
+            bottom: 16px;
+            left: 400px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        #clear-route {
+            margin-top: 24px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        #clear-route:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        #clear-route:active {
+            transform: translateY(0);
+        }
+
+
+        
+
+        /* Accordion (observações) */
+        .accordion {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-top: 8px;
+            padding: 0 12px;
+        }
+
+        .accordion.open {
+            max-height: 180px;
+            padding: 12px;
+        }
+
+        .accordion input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .accordion .close-btn {
+            background: #64748b;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        .stop-item.just-updated {
+    animation: successPulse 1.5s ease-out;
+}
+
+@keyframes successPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+
+        /* Estilo para itens concluídos: texto riscado */
+        .stop-item.completed .stop-address,
+        .stop-item.completed .stop-notes {
+            text-decoration: line-through;
+            color: #9ca3af;
+            /* cor mais cinza para reforçar que está concluído */
+            opacity: 0.85;
+            /* levemente transparente, opcional */
+        }
+
+        .stop-item.completed {
+            background: #f1f5f9;
+            /* fundo mais claro/cinza */
+            opacity: 0.85;
+            border-color: #cbd5e1;
+        }
+
+        /* ============================= */
+        /* MOBILE APP MODE - DRAWER + TOGGLE */
+        /* ============================= */
+
+        /* Overlay escuro quando sidebar aberto */
+        #overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #overlay.show {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Botão toggle menu (hamburguer) */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 3000;
+            background: #2474F5;
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(36, 116, 245, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .menu-toggle:hover,
+        .menu-toggle:active {
+            transform: scale(1.08);
+            box-shadow: 0 6px 18px rgba(36, 116, 245, 0.5);
+        }
+
+        /* Botão toggle mapa (flutuante bottom-right) */
+        .map-toggle {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 3000;
+            background: #2474F5;
+            color: white;
+            border: none;
+            padding: 14px 18px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .map-toggle:hover,
+        .map-toggle:active {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(36, 116, 245, 0.4);
+        }
+
+        /* Sidebar em modo drawer (mobile) */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                overflow: hidden;
+                /* evita scroll duplo */
+            }
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                height: 100%;
+                width: 85%;
+                max-width: 380px;
+                background: white;
+                transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                /* easing suave */
+                z-index: 2000;
+                border-radius: 0;
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+                overflow-y: auto;
+                padding: 16px;
+            }
+
+            #sidebar.open {
+                left: 0;
+            }
+
+            #map {
+                position: fixed;
+                inset: 0;
+                z-index: 1000;
+                display: none;
+                /* escondido por padrão em mobile */
+            }
+
+            #map.show {
+                display: block;
+            }
+
+            /* Mostra botões toggle apenas em mobile */
+            .menu-toggle,
+            .map-toggle {
+                display: flex;
+            }
+
+            /* Ajustes gerais para mobile */
+            .summary-cards {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .action-btn {
+                flex: 1 1 45%;
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+
+            .add-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            #add-button {
+                width: 100%;
+                padding: 14px;
+            }
+
+            .stop-item {
+                padding: 12px 14px;
+            }
+
+            
+
+            .action-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Botão de três pontinhos */
+        .more-actions-btn {
+            color: #6b7280;
+        }
+
+        .more-actions-btn:hover {
+            color: #374151;
+            background: #f3f4f6;
+        }
+
+        /* Modal de ações por parada */
+#action-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+#action-modal.show {
+    display: flex;
+}
+
+.action-modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 360px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    animation: modalPop 0.3s ease-out;
+}
+
+@keyframes modalPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.action-modal-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1e293b;
+    text-align: center;
+}
+
+.action-modal-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #374151;
+    transition: background 0.2s;
+}
+
+.action-modal-item:hover {
+    background: #f1f5f9;
+}
+
+.action-modal-item i {
+    font-size: 1.3rem;
+    width: 28px;
+    text-align: center;
+}
+
+.action-modal-item.complete { color: #10b981; }
+.action-modal-item.comment   { color: #6366f1; }
+.action-modal-item.delete    { color: #ef4444; }
+
+/* Para mobile: maior área de toque */
+@media (max-width: 480px) {
+    .action-modal-item {
+        padding: 16px 20px;
+        font-size: 1.05rem;
+    }
+}
+
+        
+
+        
+
+        /* Ajuste mobile (opcional, mas recomendado) */
+        @media (max-width: 768px) {
+            .actions-menu {
+                min-width: 200px;
+            }
+
+            
+        }
+
+        /* Mobile muito pequeno (abaixo de ~480px) */
+        @media (max-width: 480px) {
+            .menu-toggle {
+                top: 12px;
+                left: 12px;
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
+
+            .map-toggle {
+                bottom: 16px;
+                right: 16px;
+                padding: 12px 16px;
+                font-size: 0.95rem;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            h2 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside id="sidebar">
+        <div class="logo">
+            <i class="fas fa-paper-plane"></i>
+            <span>RotaExpress</span>
+        </div>
+        <div class="subtitle">Roteirização inteligente</div>
+
+
+        <h2>RESUMO DA ROTA</h2>
+
+
+        <div class="summary-cards">
+            <div class="card"><i class="fas fa-route"></i>
+                <div class="card-value" id="dist">—</div>
+                <div class="card-label">Distância</div>
+            </div>
+            <div class="card"><i class="far fa-clock"></i>
+                <div class="card-value" id="time">—</div>
+                <div class="card-label">Tempo</div>
+            </div>
+            <div class="card"><i class="fas fa-map-marker-alt"></i>
+                <div class="card-value" id="stops">0</div>
+                <div class="card-label">Paradas</div>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <label>Progresso</label>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0/0</div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn btn-rua" id="btn-rua"><i class="fas fa-search"></i> Rua</button>
+            <button class="action-btn btn-cep" id="btn-cep"><i class="fas fa-hashtag"></i> CEP</button>
+            <button class="action-btn btn-scan" id="btn-scan"><i class="fas fa-qrcode"></i> Escanear</button>
+
+
+        </div>
+
+        <div class="action-buttons">
+
+
+<button type="button" id="start-navigation">
+    <i class="fas fa-route"></i> Iniciar Rotas
+</button>
+
+          
+        </div>
+
+
+        <div class="add-row">
+            <input type="text" id="address-input" placeholder="Nome da rua, número..." />
+            <button id="add-button">+ Adicionar</button>
+        </div>
+
+        <ul id="stops-list"></ul>
+
+        <button id="clear-route">
+            <i class="fas fa-trash-alt"></i> Limpar Rota
+        </button>
+    </aside>
+
+    <div id="map"></div>
+    <div id="status">Aguardando localização...</div>
+
+    <!-- Modal genérico -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modal-title">Adicionar Parada</div>
+            <input type="text" id="modal-field1" placeholder="" />
+            <input type="text" id="modal-field2" placeholder="Número (opcional)" />
+            <textarea id="modal-notes" placeholder="Observações..." rows="2"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="modal-cancel">Cancelar</button>
+                <button class="modal-btn confirm" id="modal-confirm">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de ações -->
+<!-- Modal de ações – coloque isso UMA VEZ SÓ, no final do body -->
+<div id="action-modal" class="modal" style="display: none;">
+    <div class="action-modal-content">
+        <div class="action-modal-header" id="action-modal-title">Ações da parada</div>
+        
+        <div class="action-modal-item complete" id="modal-complete-btn">
+            <i class="fas fa-check"></i> Concluir entrega
+        </div>
+        
+        <div class="action-modal-item comment" id="modal-comment-btn">
+            <i class="far fa-comment-dots"></i> Comentário
+        </div>
+        
+        <div class="action-modal-item delete" id="modal-delete-btn">
+            <i class="fas fa-trash"></i> Excluir
+        </div>
+
+        <div id="comment-edit-section" style="display: none; margin-top: 16px;">
+            <textarea id="comment-textarea" placeholder="Digite a observação..." rows="4" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; resize:vertical;"></textarea>
+            <div style="margin-top:12px; display:flex; gap:12px; justify-content:flex-end;">
+                <button onclick="cancelCommentEdit()" style="padding:10px 20px; border-radius:8px; background:#e2e8f0; border:none; cursor:pointer;">Cancelar</button>
+                <button onclick="saveComment()" style="padding:10px 20px; border-radius:8px; background:#2474f5; color:white; border:none; cursor:pointer; font-weight:500;">Salvar</button>
+            </div>
+        </div>
+
+        <button style="margin-top:16px; width:100%; padding:12px; border-radius:10px; background:#e2e8f0; border:none; font-weight:500; cursor:pointer;" onclick="closeActionModal()">Fechar</button>
+    </div>
+</div>
+
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mapbox/polyline@1.1.1/src/polyline.min.js"></script>
+
+    <script>
+        // ────────────────────────────────────────────────
+        // CONFIGURAÇÃO DO MAPA (estilo escuro)
+        // ────────────────────────────────────────────────
+        const map = L.map('map').setView([-23.55, -46.63], 11);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Variáveis globais
+        let stops = [];
+        let markers = [];
+        let routeLayer = null;
+        let userMarker = null;
+        let userPos = null;
+        let watchId = null;
+
+        const statusEl = document.getElementById('status');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalField1 = document.getElementById('modal-field1');
+        const modalField2 = document.getElementById('modal-field2');
+        const modalNotes = document.getElementById('modal-notes');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalCancel = document.getElementById('modal-cancel');
+
+        // ────────────────────────────────────────────────
+        // CARREGA PARADAS SALVAS DO LOCALSTORAGE
+        // ────────────────────────────────────────────────
+        const saved = localStorage.getItem('rotaExpressStops');
+        if (saved) {
+            try {
+                stops = JSON.parse(saved);
+                // Garante que o status seja válido
+                stops = stops.map(stop => ({
+                    ...stop,
+                    status: stop.status === 'completed' ? 'completed' : 'pending',
+                    processing: false
+                }));
+                console.log('Paradas carregadas do localStorage:', stops.length);
+            } catch (e) {
+                console.error('Erro ao carregar paradas salvas:', e);
+                stops = []; // fallback
+            }
+        }
+
+        // Atualiza interface imediatamente com dados carregados
+        updateStopsList();
+        updateMapAndUI();
+
+        // ────────────────────────────────────────────────
+        // FUNÇÃO AUXILIAR PARA SALVAR SEMPRE QUE STOPS MUDAR
+        // ────────────────────────────────────────────────
+        function saveStops() {
+            localStorage.setItem('rotaExpressStops', JSON.stringify(stops));
+            console.log('Paradas salvas no localStorage:', stops.length);
+        }
+
+        // ────────────────────────────────────────────────
+        // MODAL DE AÇÕES POR PARADA
+        // ────────────────────────────────────────────────
+
+        let currentActionIndex = null;
+
+function openActionModal(index) {
+    currentActionIndex = index;
+    const stop = stops[index];
+    
+    document.getElementById('action-modal-title').textContent = `Parada ${index + 1}`;
+    
+    const completeBtn = document.getElementById('modal-complete-btn');
+    const isCompleted = stop.status === 'completed';
+    completeBtn.classList.toggle('completed', isCompleted);
+    completeBtn.innerHTML = `
+        <i class="${isCompleted ? 'fas fa-undo-alt' : 'fas fa-check'}"></i> 
+        ${isCompleted ? 'Reabrir rota' : 'Concluir entrega'}
+    `;
+    
+    // Reset do estado do modal
+    document.getElementById('comment-edit-section').style.display = 'none';
+    document.querySelectorAll('.action-modal-item').forEach(el => el.style.display = 'flex');
+    
+    // Abre o modal
+    const modal = document.getElementById('action-modal');
+    modal.style.display = 'flex';           // ← método mais direto e confiável
+    
+    // Eventos (redefinir toda vez que abre)
+    completeBtn.onclick = () => {
+        handleToggleComplete(index);
+        closeActionModal();
+    };
+    
+    document.getElementById('modal-comment-btn').onclick = openCommentEdit;
+    
+    document.getElementById('modal-delete-btn').onclick = () => {
+        if (confirm(`Excluir parada ${index + 1}?`)) {
+            handleRemoveStop(index);
+            closeActionModal();
+        }
+    };
+}
+
+function closeActionModal() {
+    const modal = document.getElementById('action-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Fecha ao clicar fora do conteúdo
+document.getElementById('action-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('action-modal')) {
+        closeActionModal();
+    }
+});
+
+        // Função para limpar toda a rota
+        function clearRoute() {
+            if (confirm('Tem certeza que deseja limpar TODAS as paradas da rota?\nIsso não pode ser desfeito.')) {
+                stops = [];
+                localStorage.removeItem('rotaExpressStops'); // apaga do armazenamento local
+
+                // Limpa mapa e marcadores
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                    routeLayer = null;
+                }
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                    userMarker = null;
+                }
+
+                // Atualiza tudo
+                updateStopsList();
+                updateMapAndUI();
+                statusEl.textContent = 'Rota limpa com sucesso';
+
+                console.log('Rota completamente limpa');
+            }
+        }
+
+        // ────────────────────────────────────────────────
+        // GEOCODIFICAÇÃO (Nominatim)
+        // ────────────────────────────────────────────────
+        async function geocodeAddress(address) {
+            const attempts = [
+                `${address}, São Paulo, SP, Brasil`,
+                address,
+                `${address.split(',')[0]}, São Paulo`
+            ];
+
+            for (let query of attempts) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br&addressdetails=1`);
+                    const data = await res.json();
+                    if (data.length > 0) {
+                        console.log('Geocode sucesso com query:', query);
+                        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    }
+                } catch (e) {
+                    console.error('Falha na tentativa:', query, e);
+                }
+            }
+            throw new Error('Endereço não encontrado após várias tentativas');
+        }
+
+        // ────────────────────────────────────────────────
+        // DISTÂNCIA / MATRIZ (OSRM)
+        // ────────────────────────────────────────────────
+        async function getDistanceMatrix(coords) {
+            if (coords.length < 2) return null;
+            const coordStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
+            try {
+                const res = await fetch(`http://router.project-osrm.org/table/v1/driving/${coordStr}?annotations=distance`);
+                const data = await res.json();
+                if (data.code === 'Ok') return data.distances;
+            } catch (e) { }
+            return null;
+        }
+
+        function euclideanDist(p1, p2) {
+            return Math.sqrt((p1.lat - p2.lat) ** 2 + (p1.lng - p2.lng) ** 2);
+        }
+
+        // ────────────────────────────────────────────────
+        // OTIMIZAÇÃO (Nearest Neighbor)
+        // ────────────────────────────────────────────────
+        async function optimizeOrder() {
+            if (!userPos || stops.length === 0) return;
+            let pending = stops.filter(s => s.status === 'pending');
+            if (pending.length === 0) return;
+
+            const allCoords = [userPos, ...pending.map(s => ({ lat: s.lat, lng: s.lng }))];
+            const matrix = await getDistanceMatrix(allCoords);
+
+            let newPending = pending.slice();
+            if (matrix) {
+                const n = pending.length;
+                let order = [], current = 0;
+                let unvisited = new Set(Array.from({ length: n }, (_, i) => i + 1));
+                while (unvisited.size > 0) {
+                    let minDist = Infinity, next = -1;
+                    for (let cand of unvisited) {
+                        if (matrix[current][cand] < minDist) {
+                            minDist = matrix[current][cand];
+                            next = cand;
+                        }
+                    }
+                    order.push(next - 1);
+                    current = next;
+                    unvisited.delete(next);
+                }
+                newPending = order.map(i => pending[i]);
+            } else {
+                newPending.sort((a, b) => euclideanDist(userPos, a) - euclideanDist(userPos, b));
+            }
+
+            stops = stops.filter(s => s.status === 'completed').concat(newPending);
+        }
+
+        // ────────────────────────────────────────────────
+        // CALCULA ROTA (OSRM)
+        // ────────────────────────────────────────────────
+        async function calculateRoute(coords) {
+            if (coords.length < 2) return { distance: 0, duration: 0, polyline: null };
+            const coordStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
+            try {
+                const res = await fetch(`http://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=polyline`);
+                const data = await res.json();
+                if (data.code === 'Ok') {
+                    const route = data.routes[0];
+                    return {
+                        distance: (route.distance / 1000).toFixed(1),
+                        duration: Math.round(route.duration / 60),
+                        polyline: route.geometry
+                    };
+                }
+            } catch (e) { }
+            return { distance: '?', duration: '?', polyline: null };
+        }
+
+        // ────────────────────────────────────────────────
+        // ATUALIZA MAPA E RESUMO
+        // ────────────────────────────────────────────────
+        async function updateMapAndUI() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+
+            const pending = stops.filter(s => s.status === 'pending');
+            let routeCoords = pending.map(s => ({ lat: s.lat, lng: s.lng }));
+            if (userPos) routeCoords = [userPos, ...routeCoords];
+
+            stops.forEach((stop, i) => {
+                const color = stop.status === 'completed' ? '#10b981' : '#f59e0b';
+                const icon = L.divIcon({
+                    html: `<div style="background:${color};color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;border:2px solid white;">${i + 1}</div>`,
+                    className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+                });
+                const marker = L.marker([stop.lat, stop.lng], { icon }).addTo(map)
+                    .bindPopup(`<b>${stop.address}</b><br>${stop.notes || ''}`);
+                markers.push(marker);
+            });
+
+            if (routeCoords.length >= 2) {
+                const routeData = await calculateRoute(routeCoords);
+                if (routeData.polyline) {
+                    const decoded = polyline.decode(routeData.polyline);
+                    routeLayer = L.polyline(decoded, { color: '#3b82f6', weight: 6, opacity: 0.85 }).addTo(map);
+                }
+                map.fitBounds(L.latLngBounds(routeCoords.map(c => [c.lat, c.lng])), { padding: [80, 80] });
+
+                document.getElementById('dist').textContent = routeData.distance + ' km';
+                document.getElementById('time').textContent = routeData.duration + ' min';
+            } else {
+                document.getElementById('dist').textContent = '—';
+                document.getElementById('time').textContent = '—';
+            }
+
+            const total = stops.length;
+            const done = stops.filter(s => s.status === 'completed').length;
+            const perc = total > 0 ? (done / total * 100) : 0;
+            document.getElementById('stops').textContent = total;
+            document.getElementById('progress').style.width = perc + '%';
+            document.getElementById('progress-text').textContent = `${done}/${total}`;
+        }
+
+        
+
+        // Abre captura de foto ou galeria
+        function openPhotoCapture(index) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment'; // tenta abrir câmera traseira primeiro
+
+            input.onchange = function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    // Salva a foto em base64 na parada
+                    stops[index].photo = event.target.result; // string base64
+                    saveStops();
+                    updateStopsList(); // atualiza visual (mostra ícone verde)
+
+                  
+
+                    statusEl.textContent = 'Foto salva com sucesso!';
+                    setTimeout(() => statusEl.textContent = 'Localização atualizada', 2500);
+                };
+                reader.readAsDataURL(file);
+            };
+
+            input.click();
+        }
+
+        // Modal para visualizar foto grande
+        function showPhotoModal(index) {
+            if (!stops[index].photo) return;
+
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+
+            modal.innerHTML = `
+        <div class="modal-content" style="max-width:90%; padding:12px;">
+            <div class="modal-header">Comprovante da entrega</div>
+            <img src="${stops[index].photo}" style="max-width:100%; border-radius:8px; margin:12px 0;">
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="this.closest('.modal').remove()">Fechar</button>
+            </div>
+        </div>
+    `;
+
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        }
+
+        // ────────────────────────────────────────────────
+        // ATUALIZA LISTA DE PARADAS (com drag-and-drop)
+        // ────────────────────────────────────────────────
+
+        function updateStopsList() {
+            const list = document.getElementById('stops-list');
+            list.innerHTML = '';
+
+            stops.forEach((stop, i) => {
+                const li = document.createElement('li');
+                li.className = `stop-item ${stop.status === 'completed' ? 'completed' : ''} ${stop.processing ? 'processing' : ''}`;
+                li.style.position = 'relative';
+
+                li.innerHTML = `
+        <div class="loading-overlay ${stop.processing ? 'show' : ''}" id="loading-${i}">
+        <div class="spinner"></div>
+    </div>
+    <div class="stop-header">
+        <div class="stop-number">${i + 1}</div>
+        <div class="stop-content">
+            <div class="stop-address">${stop.address}</div>
+            ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
+        </div>
+        <div class="stop-actions">
+            <!-- Foto (mantida visível) -->
+            <button class="action-icon photo-icon ${stop.photo ? 'has-photo' : ''}" 
+                    title="${stop.photo ? 'Ver comprovante' : 'Adicionar foto'}" 
+                    onclick="${stop.photo ? `showPhotoModal(${i})` : `openPhotoCapture(${i})`}">
+                <i class="fas ${stop.photo ? 'fa-image' : 'fa-camera'}"></i>
+            </button>
+
+            <!-- Navegação (mantida visível) -->
+            <button class="action-icon navigate-icon" onclick="navigateToStop(${i})" title="Google Maps">
+                <i class="fas fa-directions"></i>
+            </button>
+            <button class="action-icon waze-icon" onclick="openWazeToStop(${i})" title="Waze">
+                <i class="fab fa-waze"></i>
+            </button>
+
+           <button class="action-icon more-actions-btn" 
+        onclick="openActionModal(${i})" 
+        title="Ações">
+    <i class="fas fa-ellipsis-v"></i>
+</button>
+        </div>
+    </div>
+
+  
+`;
+
+                list.appendChild(li);
+            });
+
+            // Inicializa o Sortable para arrastar e soltar as paradas
+            new Sortable(list, {
+                animation: 150,
+                handle: '.stop-number',
+                onEnd: async () => {
+                    const newOrder = Array.from(list.children).map(li => {
+                        const num = parseInt(li.querySelector('.stop-number').textContent) - 1;
+                        return stops[num];
+                    });
+                    stops = newOrder;
+                    await updateMapAndUI();
+                    saveStops();
+                }
+            });
+
+            // Fecha todos os accordions abertos (segurança)
+            document.querySelectorAll('.accordion').forEach(acc => acc.classList.remove('open'));
+        }
+
+        // Concluir / Reabrir
+        async function handleToggleComplete(index) {
+            startLoading(index);
+            try {
+                // Sua lógica original de toggle
+                if (stops[index].status === 'completed') {
+                    stops[index].status = 'pending';
+                } else {
+                    stops[index].status = 'completed';
+                }
+                await optimizeOrder();
+                updateStopsList();
+                await updateMapAndUI();
+                saveStops();
+
+                statusEl.textContent = stops[index].status === 'completed'
+                    ? `Parada ${index + 1} concluída!`
+                    : `Parada ${index + 1} reaberta`;
+                setTimeout(() => statusEl.textContent = 'Localização atualizada', 3000);
+            } catch (err) {
+                console.error('Erro ao concluir/reabrir:', err);
+                statusEl.textContent = 'Erro ao processar. Tente novamente.';
+                setTimeout(() => statusEl.textContent = 'Localização atualizada', 4000);
+            } finally {
+                stopLoading(index);
+            }
+        }
+
+        // Excluir parada
+        async function handleRemoveStop(index) {
+            if (!confirm('Deseja realmente excluir esta parada?')) return;
+
+            startLoading(index);
+            try {
+                stops.splice(index, 1);
+                await optimizeOrder();
+                updateStopsList();
+                await updateMapAndUI();
+                saveStops();
+                statusEl.textContent = 'Parada removida';
+                setTimeout(() => statusEl.textContent = 'Localização atualizada', 3000);
+            } catch (err) {
+                console.error('Erro ao remover:', err);
+                statusEl.textContent = 'Erro ao remover parada.';
+                setTimeout(() => statusEl.textContent = 'Localização atualizada', 4000);
+            } finally {
+                stopLoading(index);
+            }
+        }
+
+
+       
+
+        // ────────────────────────────────────────────────
+        // ADICIONAR PARADA GENÉRICA
+        // ────────────────────────────────────────────────
+        async function addStop(address, notes = '') {
+            try {
+                const coords = await geocodeAddress(address);
+                stops.push({ ...coords, address, status: 'pending', notes });
+                await optimizeOrder();
+                updateStopsList();
+                await updateMapAndUI();
+                saveStops(); // salva após adicionar
+            } catch (err) {
+                alert('Não foi possível encontrar o endereço: ' + err.message);
+            }
+        }
+
+        // ────────────────────────────────────────────────
+        // BOTÃO RUA
+        // ────────────────────────────────────────────────
+        document.getElementById('btn-rua').addEventListener('click', () => {
+            modalTitle.textContent = 'Adicionar por Rua';
+            modalField1.placeholder = 'Rua / Avenida / etc.';
+            modalField2.placeholder = 'Número (opcional)';
+            modalField1.value = '';
+            modalField2.value = '';
+            modalNotes.value = '';
+            modal.style.display = 'flex';
+            modalField1.focus();
+
+            modalConfirm.onclick = async () => {
+                const rua = modalField1.value.trim();
+                const num = modalField2.value.trim();
+                const notes = modalNotes.value.trim();
+                if (!rua) return alert('Digite pelo menos o nome da rua');
+                const addr = num ? `${rua}, ${num}` : rua;
+                await addStop(addr, notes);
+                modal.style.display = 'none';
+            };
+        });
+
+        // ────────────────────────────────────────────────
+        // BOTÃO CEP (com número opcional)
+        // ────────────────────────────────────────────────
+        document.getElementById('btn-cep').addEventListener('click', () => {
+            modalTitle.textContent = 'Adicionar por CEP';
+            modalField1.placeholder = 'Digite o CEP (ex: 06086040 ou 06086-040)';
+            modalField2.placeholder = 'Número da casa (opcional)';
+            modalField2.style.display = 'block';
+            modalField2.value = '';
+            modalNotes.value = '';
+            modalField1.value = '';
+            modal.style.display = 'flex';
+            modalField1.focus();
+
+            modalConfirm.onclick = async () => {
+                let cep = modalField1.value.trim().replace(/\D/g, '');
+                if (cep.length !== 8) return alert('CEP inválido (8 dígitos)');
+
+                try {
+                    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    const data = await res.json();
+                    if (data.erro) throw new Error('CEP não encontrado');
+
+                    const logradouro = data.logradouro ? data.logradouro.trim() : 'Rua sem nome';
+                    const numero = modalField2.value.trim();
+                    const bairro = data.bairro ? `, ${data.bairro.trim()}` : '';
+                    const cidade = data.localidade || 'São Paulo';
+                    const uf = data.uf || 'SP';
+
+                    let addr = logradouro;
+                    if (numero) addr += `, ${numero}`;
+                    addr += `${bairro}, ${cidade} - ${uf}`;
+
+                    console.log('CEP digitado:', cep);
+                    console.log('Número informado:', numero || '(vazio)');
+                    console.log('Dados ViaCEP:', data);
+                    console.log('Endereço montado:', addr);
+
+                    const notes = modalNotes.value.trim();
+                    await addStop(addr, notes);
+                    modal.style.display = 'none';
+                } catch (err) {
+                    console.error('Erro completo:', err);
+                    alert('Erro ao consultar ou geocodificar CEP:\n' + (err.message || 'Tente novamente'));
+                }
+            };
+        });
+
+        // ────────────────────────────────────────────────
+        // BOTÃO ESCANEAR (placeholder)
+        // ────────────────────────────────────────────────
+        document.getElementById('btn-scan').addEventListener('click', () => {
+            alert('Funcionalidade de escaneamento em desenvolvimento.\n\nEm breve: leitura via câmera.');
+        });
+
+        // ────────────────────────────────────────────────
+        // CONTROLES DO MODAL
+        // ────────────────────────────────────────────────
+        modalCancel.onclick = () => { modal.style.display = 'none'; };
+        modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+
+        // ────────────────────────────────────────────────
+        // INPUT PRINCIPAL (fallback)
+        // ────────────────────────────────────────────────
+        document.getElementById('add-button').addEventListener('click', async () => {
+            const addr = document.getElementById('address-input').value.trim();
+            if (!addr) return;
+            await addStop(addr);
+            document.getElementById('address-input').value = '';
+        });
+
+        // Botão Limpar Rota
+        document.getElementById('clear-route').addEventListener('click', clearRoute);
+
+        document.getElementById('start-navigation').addEventListener('click', () => {
+            if (stops.length === 0) {
+                alert('Adicione pelo menos uma parada para iniciar navegação.');
+                return;
+            }
+
+            if (!userPos) {
+                alert('Localização atual não detectada. Aguarde o GPS ou tente novamente.');
+                return;
+            }
+
+            // Monta waypoints (paradas intermediárias)
+            const waypoints = stops
+                .filter(s => s.status === 'pending') // só pendentes
+                .map(s => `${s.lat},${s.lng}`)
+                .join('|');
+
+            const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userPos.lat},${userPos.lng}&destination=${waypoints.split('|').pop()}&waypoints=${waypoints}&travelmode=driving&dir_action=navigate`;
+
+            window.open(googleMapsUrl, '_blank');
+        });
+
+        // ────────────────────────────────────────────────
+        // TRACKING GPS + MARCADOR PERSONALIZADO
+        // ────────────────────────────────────────────────
+        function startTracking() {
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(
+                    pos => {
+                        userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+                        if (!userMarker) {
+                            userMarker = L.marker([userPos.lat, userPos.lng], {
+                                icon: L.divIcon({
+                                    html: `
+                  <div style="
+                    background: #3b82f6;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    border: 4px solid white;
+                    box-shadow: 0 0 12px rgba(59,130,246,0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    font-weight: bold;
+                    color: white;
+                  ">Você</div>
+                `,
+                                    className: '',
+                                    iconSize: [28, 28],
+                                    iconAnchor: [14, 14]
+                                }),
+                                zIndexOffset: 1000
+                            }).addTo(map)
+                                .bindPopup('Sua localização atual');
+                        } else {
+                            userMarker.setLatLng([userPos.lat, userPos.lng]);
+                        }
+
+                        statusEl.textContent = 'Localização atualizada';
+
+                        if (routeLayer) {
+                            const dists = routeLayer.getLatLngs().map(p => map.distance([userPos.lat, userPos.lng], p));
+                            const minDist = Math.min(...dists);
+                            if (minDist > 150) {
+                                statusEl.textContent = 'Você saiu da rota! Recalculando...';
+                                setTimeout(async () => {
+                                    await optimizeOrder();
+                                    await updateMapAndUI();
+                                    statusEl.textContent = 'Rota recalculada';
+                                }, 1500);
+                            }
+                        }
+                    },
+                    err => {
+                        console.error('Erro de geolocalização:', err);
+                        statusEl.textContent = 'Erro ao obter localização: ' + err.message;
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                statusEl.textContent = 'Geolocalização não suportada neste navegador';
+            }
+        }
+
+        // Abre Google Maps para navegar até a parada específica
+        function navigateToStop(index) {
+    const stop = stops[index];
+    if (!stop.address) {
+        alert('Endereço não disponível para esta parada.');
+        return;
+    }
+
+    // Usa o endereço completo (com número, bairro, cidade) como destino principal
+    const destination = encodeURIComponent(stop.address);
+
+    let origin = '';
+    if (userPos) {
+        origin = `${userPos.lat},${userPos.lng}`;
+    } else {
+        // Se não tiver posição atual, deixa vazio (Google Maps usa localização atual do dispositivo)
+        origin = '';
+    }
+
+    // Monta o link priorizando endereço textual (mais preciso para número da casa)
+    let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving&dir_action=navigate`;
+
+    // Se tiver origem conhecida, adiciona
+    if (origin) {
+        googleMapsUrl += `&origin=${origin}`;
+    }
+
+    // Opcional: força modo de navegação imediato
+    googleMapsUrl += '&dir_action=navigate';
+
+    console.log('Abrindo Google Maps com endereço textual:', stop.address);
+    window.open(googleMapsUrl, '_blank');
+}
+
+        // Inicia tudo
+        startTracking();
+
+        
+
+        function openWazeToStop(index) {
+    const stop = stops[index];
+    if (!stop.address) {
+        alert('Endereço não disponível para esta parada.');
+        return;
+    }
+
+    // Usa o endereço completo como query (mais preciso para número da casa)
+    const query = encodeURIComponent(stop.address);
+
+    // Monta o link priorizando busca textual
+    let wazeUrl = `https://waze.com/ul?q=${query}&navigate=yes`;
+
+    // Opcional: se tiver coordenadas como fallback (mas texto é melhor para precisão)
+    // if (stop.lat && stop.lng) {
+    //     wazeUrl += `&ll=${stop.lat},${stop.lng}`;
+    // }
+
+    // Se quiser forçar origem (posição atual), mas Waze geralmente usa GPS do celular
+    // if (userPos) {
+    //     wazeUrl += `&from=${userPos.lat},${userPos.lng}`;
+    // }
+
+    console.log('Abrindo Waze com endereço textual:', stop.address);
+    window.open(wazeUrl, '_blank');
+
+    statusEl.textContent = `Abrindo Waze para: ${stop.address}`;
+    setTimeout(() => statusEl.textContent = 'Localização atualizada', 10000);
+}
+
+
+        
+
+        function startLoading(index) {
+            if (index >= 0 && index < stops.length) {
+                stops[index].processing = true;
+                updateStopsList();  // re-renderiza a lista (pode ser otimizado depois)
+            }
+        }
+
+        function stopLoading(index) {
+            if (index >= 0 && index < stops.length) {
+                stops[index].processing = false;
+                updateStopsList();
+            }
+        }
+
+        function openCommentEdit() {
+    // Esconde as opções principais
+    document.querySelectorAll('.action-modal-item').forEach(item => {
+        item.style.display = 'none';
+    });
+    
+    // Mostra o campo de edição
+    const section = document.getElementById('comment-edit-section');
+    section.style.display = 'block';
+    
+    // Preenche com o comentário atual (se existir)
+    const textarea = document.getElementById('comment-textarea');
+    textarea.value = stops[currentActionIndex]?.notes || '';
+    textarea.focus();
+}
+
+function cancelCommentEdit() {
+    // Volta para as opções principais
+    document.querySelectorAll('.action-modal-item').forEach(item => {
+        item.style.display = 'flex';
+    });
+    
+    document.getElementById('comment-edit-section').style.display = 'none';
+}
+
+function saveComment() {
+    const textarea = document.getElementById('comment-textarea');
+    const newNote = textarea.value.trim();
+    
+    if (currentActionIndex !== null) {
+        stops[currentActionIndex].notes = newNote;
+        saveStops();
+        updateStopsList(); // atualiza a lista para mostrar a nota no item
+        
+        statusEl.textContent = newNote 
+            ? 'Observação salva!' 
+            : 'Observação removida';
+        setTimeout(() => statusEl.textContent = 'Localização atualizada', 3000);
+    }
+    
+    cancelCommentEdit(); // volta para as opções
+    // Opcional: fechar o modal inteiro após salvar
+    // closeActionModal();
+}
+
+    </script>
+</body>
+
+</html>
