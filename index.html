@@ -1885,7 +1885,34 @@ function saveComment() {
     // Opcional: fechar o modal inteiro após salvar
     // closeActionModal();
 }
-
+// Campo de busca das paradas
+document.getElementById('search-stops').addEventListener('input', function(e) {
+    const query = e.target.value.toLowerCase().trim();
+    
+    // Se vazio, mostra todas
+    if (!query) {
+        document.querySelectorAll('#stops-list .stop-item').forEach(item => {
+            item.style.display = 'block';
+        });
+        return;
+    }
+    
+    // Filtra as paradas
+    document.querySelectorAll('#stops-list .stop-item').forEach(item => {
+        const addressEl = item.querySelector('.stop-address');
+        const notesEl = item.querySelector('.stop-notes');
+        
+        const addressText = addressEl ? addressEl.textContent.toLowerCase() : '';
+        const notesText = notesEl ? notesEl.textContent.toLowerCase() : '';
+        
+        // Mostra se endereço ou observação contém o texto digitado
+        if (addressText.includes(query) || notesText.includes(query)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
     </script>
 </body>
 
