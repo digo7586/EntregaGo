@@ -2014,17 +2014,16 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
         }
     });
 });
+// ====================== CONTROLE DO BOTTOM SHEET + ROTA ======================
 
 const bottomSheet = document.getElementById('bottom-sheet');
 let startY = 0;
 let currentTranslate = 0;
 let prevTranslate = 0;
-let animationID = 0;
 
 function touchStart(e) {
     startY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
     bottomSheet.style.transition = 'none';
-    cancelAnimationFrame(animationID);
 }
 
 function touchMove(e) {
@@ -2032,7 +2031,6 @@ function touchMove(e) {
     const delta = currentY - startY;
     currentTranslate = prevTranslate + delta;
 
-    // Limita o movimento
     if (currentTranslate < 0) currentTranslate = 0;
     if (currentTranslate > window.innerHeight * 0.9) currentTranslate = window.innerHeight * 0.9;
 
@@ -2042,34 +2040,49 @@ function touchMove(e) {
 function touchEnd() {
     bottomSheet.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
 
-    // Snap para estados
     const sheetHeight = bottomSheet.offsetHeight;
-    if (currentTranslate < sheetHeight * 0.25) {
-        currentTranslate = 0; // expandido
+    const currentPos = bottomSheet.getBoundingClientRect().top;
+
+    if (currentPos < sheetHeight * 0.3) {
+        // Expandido (mostra lista completa)
+        currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
         bottomSheet.classList.add('expanded');
     } else {
-        currentTranslate = sheetHeight - 180; // recolhido (mostra ~180px)
+        // Recolhido (mostra só header)
+        currentTranslate = sheetHeight - 180;
         bottomSheet.classList.remove('expanded');
         bottomSheet.classList.add('collapsed');
     }
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
     prevTranslate = currentTranslate;
+
+    // === FORÇA REDESENHO DA ROTA (ESSENCIAL) ===
+    setTimeout(() => {
+        if (map) {
+            map.invalidateSize();
+            updateMapAndUI();        // recalcula e redesenha a linha + distância/tempo
+        }
+    }, 350);
 }
 
-// Eventos touch
+// Eventos de toque e mouse
 bottomSheet.addEventListener('touchstart', touchStart);
 bottomSheet.addEventListener('touchmove', touchMove);
 bottomSheet.addEventListener('touchend', touchEnd);
 
-// Suporte mouse (para testes no desktop)
 bottomSheet.addEventListener('mousedown', touchStart);
 bottomSheet.addEventListener('mousemove', touchMove);
 bottomSheet.addEventListener('mouseup', touchEnd);
 
 // Inicial: começa recolhido
 bottomSheet.classList.add('collapsed');
+
+// Redesenha mapa sempre que a janela mudar de tamanho
+window.addEventListener('resize', () => {
+    if (map) map.invalidateSize();
+});
     </script>
 </body>
 
