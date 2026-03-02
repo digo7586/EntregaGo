@@ -1414,22 +1414,30 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
         // CALCULA ROTA (OSRM)
         // ────────────────────────────────────────────────
         async function calculateRoute(coords) {
-            if (coords.length < 2) return { distance: 0, duration: 0, polyline: null };
-            const coordStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
-            try {
-                const res = await fetch(`http://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=polyline`);
-                const data = await res.json();
-                if (data.code === 'Ok') {
-                    const route = data.routes[0];
-                    return {
-                        distance: (route.distance / 1000).toFixed(1),
-                        duration: Math.round(route.duration / 60),
-                        polyline: route.geometry
-                    };
-                }
-            } catch (e) { }
-            return { distance: '?', duration: '?', polyline: null };
+    if (coords.length < 2) return { distance: 0, duration: 0, polyline: null };
+    const coordStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
+    
+    try {
+        // Servidor OSM routing com CORS liberado
+        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordStr}?overview=full&geometries=polyline`);
+        const data = await res.json();
+        
+        if (data.code === 'Ok') {
+            const route = data.routes[0];
+            return {
+                distance: (route.distance / 1000).toFixed(1),
+                duration: Math.round(route.duration / 60),
+                polyline: route.geometry
+            };
+        } else {
+            console.warn('OSRM retornou erro:', data);
         }
+    } catch (e) {
+        console.error('Erro ao calcular rota:', e);
+    }
+    
+    return { distance: '?', duration: '?', polyline: null };
+}
 
         // ────────────────────────────────────────────────
         // ATUALIZA MAPA E RESUMO
