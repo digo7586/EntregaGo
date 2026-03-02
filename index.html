@@ -2014,7 +2014,8 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
         }
     });
 });
-// ====================== CONTROLE DO BOTTOM SHEET + ROTA ======================
+
+// ====================== CONTROLE DO BOTTOM SHEET + FORÇA ROTA NO CELULAR ======================
 
 const bottomSheet = document.getElementById('bottom-sheet');
 let startY = 0;
@@ -2044,13 +2045,11 @@ function touchEnd() {
     const currentPos = bottomSheet.getBoundingClientRect().top;
 
     if (currentPos < sheetHeight * 0.3) {
-        // Expandido (mostra lista completa)
-        currentTranslate = 0;
+        currentTranslate = 0; // expandido
         bottomSheet.classList.remove('collapsed');
         bottomSheet.classList.add('expanded');
     } else {
-        // Recolhido (mostra só header)
-        currentTranslate = sheetHeight - 180;
+        currentTranslate = sheetHeight - 180; // recolhido
         bottomSheet.classList.remove('expanded');
         bottomSheet.classList.add('collapsed');
     }
@@ -2058,16 +2057,26 @@ function touchEnd() {
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
     prevTranslate = currentTranslate;
 
-    // === FORÇA REDESENHO DA ROTA (ESSENCIAL) ===
+    // === FORÇA REDESENHO DA ROTA NO CELULAR ===
     setTimeout(() => {
         if (map) {
-            map.invalidateSize();
-            updateMapAndUI();        // recalcula e redesenha a linha + distância/tempo
+            map.invalidateSize(); // recalcula tamanho
+
+            // Remove rota antiga se existir
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+                routeLayer = null;
+            }
+
+            // Recria TODA a rota do zero
+            updateMapAndUI(); // sua função que calcula OSRM, decodifica polyline e adiciona layer
+
+            console.log('Rota forçada a redesenhar após drag do sheet');
         }
-    }, 350);
+    }, 400); // delay para animação terminar + DOM atualizar
 }
 
-// Eventos de toque e mouse
+// Eventos
 bottomSheet.addEventListener('touchstart', touchStart);
 bottomSheet.addEventListener('touchmove', touchMove);
 bottomSheet.addEventListener('touchend', touchEnd);
@@ -2076,10 +2085,10 @@ bottomSheet.addEventListener('mousedown', touchStart);
 bottomSheet.addEventListener('mousemove', touchMove);
 bottomSheet.addEventListener('mouseup', touchEnd);
 
-// Inicial: começa recolhido
+// Inicial: recolhido
 bottomSheet.classList.add('collapsed');
 
-// Redesenha mapa sempre que a janela mudar de tamanho
+// Redesenha mapa em resize (já tem, mas reforça)
 window.addEventListener('resize', () => {
     if (map) map.invalidateSize();
 });
