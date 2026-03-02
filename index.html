@@ -230,17 +230,27 @@
             z-index: 10;
         }
 
-        .stop-item {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            padding: 12px 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: all 0.15s ease;
-            position: relative;
-            z-index: 1;
-        }
+      .stop-item {
+    display: flex !important;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.stop-address {
+    flex: 1;
+    font-size: 1rem;
+    color: #1e293b;
+    margin-left: 12px;
+    white-space: normal; /* permite quebra de linha */
+    word-break: break-word;
+}
+
+.stop-notes {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-top: 4px;
+}
 
         .stop-item:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -415,10 +425,7 @@
             color: white;
         }
 
-        #map {
-            flex: 1;
-            height: 100vh;
-        }
+       
 
         /* Modal */
         .modal {
@@ -558,6 +565,41 @@
             opacity: 0.7;
         }
 
+
+        #stops-list .stop-item {
+    min-height: 60px; /* garante espaço para texto */
+}
+
+#stops-list .stop-content {
+    flex: 1;
+    min-width: 0; /* evita overflow */
+}
+
+#stops-list .stop-address {
+    font-weight: 500;
+    line-height: 1.4;
+    display: block;
+}
+
+/* Garante que o texto não seja oculto por overflow */
+.sheet-content {
+    overflow-y: auto !important;
+}
+
+@media (max-width: 768px) {
+    .bottom-sheet {
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+    }
+
+    .sheet-content {
+        padding: 0 12px 100px; /* mais espaço embaixo para scroll */
+    }
+
+    .stop-item {
+        padding: 12px 8px;
+    }
+}
 
         #status {
             position: absolute;
@@ -769,16 +811,76 @@
             }
 
             #map {
-                position: fixed;
-                inset: 0;
-                z-index: 1000;
-                display: none;
-                /* escondido por padrão em mobile */
-            }
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+}
 
-            #map.show {
-                display: block;
-            }
+        .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.25);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 90vh;
+    overflow: hidden;
+}
+
+.sheet-handle {
+    width: 48px;
+    height: 6px;
+    background: #d1d5db;
+    border-radius: 3px;
+    margin: 12px auto;
+}
+
+.sheet-content {
+    overflow-y: auto;
+    height: calc(90vh - 30px);
+    padding: 0 16px 80px; /* espaço para botão limpar embaixo */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Estados do sheet */
+.bottom-sheet.collapsed {
+    transform: translateY(calc(100% - 180px)); /* mostra só header + poucas linhas */
+}
+
+.bottom-sheet.expanded {
+    transform: translateY(0);
+}
+
+/* Status flutuante acima do sheet */
+#status {
+    position: fixed;
+    bottom: 100px; /* acima do sheet recolhido */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1100;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .summary-cards {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    .action-buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}   
 
             /* Mostra botões toggle apenas em mobile */
             .menu-toggle,
@@ -813,9 +915,7 @@
                 padding: 14px;
             }
 
-            .stop-item {
-                padding: 12px 14px;
-            }
+           
 
             
 
@@ -966,77 +1066,80 @@
 
 <body>
 
-    <aside id="sidebar">
-        <div class="logo">
-            <i class="fas fa-paper-plane"></i>
-            <span>RotaExpress</span>
-        </div>
-        <div class="subtitle">Roteirização inteligente</div>
-
-
-        <h2>RESUMO DA ROTA</h2>
-
-
-        <div class="summary-cards">
-            <div class="card"><i class="fas fa-route"></i>
-                <div class="card-value" id="dist">—</div>
-                <div class="card-label">Distância</div>
-            </div>
-            <div class="card"><i class="far fa-clock"></i>
-                <div class="card-value" id="time">—</div>
-                <div class="card-label">Tempo</div>
-            </div>
-            <div class="card"><i class="fas fa-map-marker-alt"></i>
-                <div class="card-value" id="stops">0</div>
-                <div class="card-label">Paradas</div>
-            </div>
-        </div>
-
-        <div class="progress-section">
-            <label>Progresso</label>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress"></div>
-            </div>
-            <div class="progress-text" id="progress-text">0/0</div>
-        </div>
-
-        <div class="action-buttons">
-            <button class="action-btn btn-rua" id="btn-rua"><i class="fas fa-search"></i> Rua</button>
-            <button class="action-btn btn-cep" id="btn-cep"><i class="fas fa-hashtag"></i> CEP</button>
-            <button class="action-btn btn-scan" id="btn-scan"><i class="fas fa-qrcode"></i> Escanear</button>
-
-
-        </div>
-
-        <div class="action-buttons">
-
-
-<button type="button" id="start-navigation">
-    <i class="fas fa-route"></i> Iniciar Rotas
-</button>
-
-          
-        </div>
-
-
-        <div class="add-row">
-            <input type="text" id="address-input" placeholder="Nome da rua, número..." />
-            <button id="add-button">+ Adicionar</button>
-        </div>
-<div class="search-container" style="margin: 16px 0; position: relative;">
-    <input type="text" id="search-stops" 
-           placeholder="Pesquisar endereço ou número..." 
-           style="width: 100%; padding: 12px 16px 12px 40px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; box-sizing: border-box;">
-    <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
-</div>
-        <ul id="stops-list"></ul>
-
-        <button id="clear-route">
-            <i class="fas fa-trash-alt"></i> Limpar Rota
-        </button>
-    </aside>
-
+  <!-- Mapa sempre em background (full screen) -->
     <div id="map"></div>
+
+    <!-- Bottom sheet com sidebar (lista + resumo) -->
+    <div id="bottom-sheet" class="bottom-sheet collapsed">
+        <!-- Barrinha para arrastar -->
+        <div class="sheet-handle"></div>
+
+        <!-- Conteúdo do sheet -->
+        <div class="sheet-content">
+            <div class="logo">
+                <i class="fas fa-paper-plane"></i>
+                <span>RotaExpress</span>
+            </div>
+            <div class="subtitle">Roteirização inteligente</div>
+
+            <h2>RESUMO DA ROTA</h2>
+
+            <div class="summary-cards">
+                <div class="card"><i class="fas fa-route"></i>
+                    <div class="card-value" id="dist">—</div>
+                    <div class="card-label">Distância</div>
+                </div>
+                <div class="card"><i class="far fa-clock"></i>
+                    <div class="card-value" id="time">—</div>
+                    <div class="card-label">Tempo</div>
+                </div>
+                <div class="card"><i class="fas fa-map-marker-alt"></i>
+                    <div class="card-value" id="stops">0</div>
+                    <div class="card-label">Paradas</div>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <label>Progresso</label>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+                <div class="progress-text" id="progress-text">0/0</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn btn-rua" id="btn-rua"><i class="fas fa-search"></i> Rua</button>
+                <button class="action-btn btn-cep" id="btn-cep"><i class="fas fa-hashtag"></i> CEP</button>
+                <button class="action-btn btn-scan" id="btn-scan"><i class="fas fa-qrcode"></i> Escanear</button>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" id="start-navigation">
+                    <i class="fas fa-route"></i> Iniciar Rotas
+                </button>
+            </div>
+
+            <div class="add-row">
+                <input type="text" id="address-input" placeholder="Nome da rua, número..." />
+                <button id="add-button">+ Adicionar</button>
+            </div>
+
+            <div class="search-container" style="margin: 16px 0; position: relative;">
+                <input type="text" id="search-stops" 
+                       placeholder="Pesquisar endereço ou número..." 
+                       style="width: 100%; padding: 12px 16px 12px 40px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; box-sizing: border-box;">
+                <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+            </div>
+
+            <ul id="stops-list"></ul>
+
+            <button id="clear-route">
+                <i class="fas fa-trash-alt"></i> Limpar Rota
+            </button>
+        </div>
+    </div>
+
+    <!-- Status flutuante -->
     <div id="status">Aguardando localização...</div>
 
     <!-- Modal genérico -->
@@ -1054,35 +1157,33 @@
     </div>
 
     <!-- Modal de ações -->
-<!-- Modal de ações – coloque isso UMA VEZ SÓ, no final do body -->
-<div id="action-modal" class="modal" style="display: none;">
-    <div class="action-modal-content">
-        <div class="action-modal-header" id="action-modal-title">Ações da parada</div>
-        
-        <div class="action-modal-item complete" id="modal-complete-btn">
-            <i class="fas fa-check"></i> Concluir entrega
-        </div>
-        
-        <div class="action-modal-item comment" id="modal-comment-btn">
-            <i class="far fa-comment-dots"></i> Comentário
-        </div>
-        
-        <div class="action-modal-item delete" id="modal-delete-btn">
-            <i class="fas fa-trash"></i> Excluir
-        </div>
-
-        <div id="comment-edit-section" style="display: none; margin-top: 16px;">
-            <textarea id="comment-textarea" placeholder="Digite a observação..." rows="4" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; resize:vertical;"></textarea>
-            <div style="margin-top:12px; display:flex; gap:12px; justify-content:flex-end;">
-                <button onclick="cancelCommentEdit()" style="padding:10px 20px; border-radius:8px; background:#e2e8f0; border:none; cursor:pointer;">Cancelar</button>
-                <button onclick="saveComment()" style="padding:10px 20px; border-radius:8px; background:#2474f5; color:white; border:none; cursor:pointer; font-weight:500;">Salvar</button>
+    <div id="action-modal" class="modal" style="display: none;">
+        <div class="action-modal-content">
+            <div class="action-modal-header" id="action-modal-title">Ações da parada</div>
+            
+            <div class="action-modal-item complete" id="modal-complete-btn">
+                <i class="fas fa-check"></i> Concluir entrega
             </div>
+            
+            <div class="action-modal-item comment" id="modal-comment-btn">
+                <i class="far fa-comment-dots"></i> Comentário
+            </div>
+            
+            <div class="action-modal-item delete" id="modal-delete-btn">
+                <i class="fas fa-trash"></i> Excluir
+            </div>
+
+            <div id="comment-edit-section" style="display: none; margin-top: 16px;">
+                <textarea id="comment-textarea" placeholder="Digite a observação..." rows="4" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; resize:vertical;"></textarea>
+                <div style="margin-top:12px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button onclick="cancelCommentEdit()" style="padding:10px 20px; border-radius:8px; background:#e2e8f0; border:none; cursor:pointer;">Cancelar</button>
+                    <button onclick="saveComment()" style="padding:10px 20px; border-radius:8px; background:#2474f5; color:white; border:none; cursor:pointer; font-weight:500;">Salvar</button>
+                </div>
+            </div>
+
+            <button style="margin-top:16px; width:100%; padding:12px; border-radius:10px; background:#e2e8f0; border:none; font-weight:500; cursor:pointer;" onclick="closeActionModal()">Fechar</button>
         </div>
-
-        <button style="margin-top:16px; width:100%; padding:12px; border-radius:10px; background:#e2e8f0; border:none; font-weight:500; cursor:pointer;" onclick="closeActionModal()">Fechar</button>
     </div>
-</div>
-
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -1449,7 +1550,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
     <div class="stop-header">
         <div class="stop-number">${i + 1}</div>
         <div class="stop-content">
-            <div class="stop-address">${stop.address}</div>
+            <div class="stop-address">${stop.address || 'Endereço não informado'}</div>
             ${stop.notes ? `<div class="stop-notes">${stop.notes}</div>` : ''}
         </div>
         <div class="stop-actions">
@@ -1913,6 +2014,62 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
         }
     });
 });
+
+const bottomSheet = document.getElementById('bottom-sheet');
+let startY = 0;
+let currentTranslate = 0;
+let prevTranslate = 0;
+let animationID = 0;
+
+function touchStart(e) {
+    startY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
+    bottomSheet.style.transition = 'none';
+    cancelAnimationFrame(animationID);
+}
+
+function touchMove(e) {
+    const currentY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
+    const delta = currentY - startY;
+    currentTranslate = prevTranslate + delta;
+
+    // Limita o movimento
+    if (currentTranslate < 0) currentTranslate = 0;
+    if (currentTranslate > window.innerHeight * 0.9) currentTranslate = window.innerHeight * 0.9;
+
+    bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
+}
+
+function touchEnd() {
+    bottomSheet.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
+
+    // Snap para estados
+    const sheetHeight = bottomSheet.offsetHeight;
+    if (currentTranslate < sheetHeight * 0.25) {
+        currentTranslate = 0; // expandido
+        bottomSheet.classList.remove('collapsed');
+        bottomSheet.classList.add('expanded');
+    } else {
+        currentTranslate = sheetHeight - 180; // recolhido (mostra ~180px)
+        bottomSheet.classList.remove('expanded');
+        bottomSheet.classList.add('collapsed');
+    }
+
+    bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
+    prevTranslate = currentTranslate;
+}
+
+// Eventos touch
+bottomSheet.addEventListener('touchstart', touchStart);
+bottomSheet.addEventListener('touchmove', touchMove);
+bottomSheet.addEventListener('touchend', touchEnd);
+
+// Suporte mouse (para testes no desktop)
+bottomSheet.addEventListener('mousedown', touchStart);
+bottomSheet.addEventListener('mousemove', touchMove);
+bottomSheet.addEventListener('mouseup', touchEnd);
+
+// Inicial: começa recolhido
+bottomSheet.classList.add('collapsed');
     </script>
 </body>
 
