@@ -1061,6 +1061,33 @@
     border-color: #2474f5;
     box-shadow: 0 0 0 3px rgba(36, 116, 245, 0.2);
 }
+
+        .card-subvalue {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Ajuste para caber bem no mobile */
+@media (max-width: 768px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr); /* 2 colunas no mobile para melhor legibilidade */
+        gap: 10px;
+    }
+
+    .card {
+        padding: 12px 8px;
+    }
+
+    .card-value {
+        font-size: 1.1rem;
+    }
+
+    .card-subvalue {
+        font-size: 0.8rem;
+    }
+}
     </style>
 </head>
 
@@ -1084,20 +1111,36 @@
 
             <h2>RESUMO DA ROTA</h2>
 
-            <div class="summary-cards">
-                <div class="card"><i class="fas fa-route"></i>
-                    <div class="card-value" id="dist">—</div>
-                    <div class="card-label">Distância</div>
-                </div>
-                <div class="card"><i class="far fa-clock"></i>
-                    <div class="card-value" id="time">—</div>
-                    <div class="card-label">Tempo</div>
-                </div>
-                <div class="card"><i class="fas fa-map-marker-alt"></i>
-                    <div class="card-value" id="stops">0</div>
-                    <div class="card-label">Paradas</div>
-                </div>
-            </div>
+           <div class="summary-cards">
+    <!-- Distância -->
+    <div class="card">
+        <i class="fas fa-route"></i>
+        <div class="card-value" id="dist">—</div>
+        <div class="card-label">Distância</div>
+    </div>
+
+    <!-- Tempo + Previsão de Término (no mesmo card) -->
+    <div class="card">
+        <i class="far fa-clock"></i>
+        <div class="card-value" id="time">—</div>
+        <div class="card-label">Tempo</div>
+        <div class="card-subvalue" id="estimated-end">Previsão: —</div>
+    </div>
+
+    <!-- Paradas -->
+    <div class="card">
+        <i class="fas fa-map-marker-alt"></i>
+        <div class="card-value" id="stops">0</div>
+        <div class="card-label">Paradas</div>
+    </div>
+
+    <!-- Ganho Estimado -->
+   <div class="card">
+    <i class="fas fa-money-bill-wave"></i>
+    <div class="card-value" id="estimated-gain">R$ 0,00</div>
+    <div class="card-label">Ganho Estimado</div>
+</div>
+</div>
 
             <div class="progress-section">
                 <label>Progresso</label>
@@ -1207,6 +1250,14 @@
         let userPos = null;
         let watchId = null;
 
+        const BASE_VALUE = 2.60; // R$ 2,60 por pacote até 93%
+
+const BONUS_TIERS = [
+    { maxPercent: 93,  valuePerPackage: 2.60 },
+    { maxPercent: 96,  valuePerPackage: 2.80 },
+    { maxPercent: 100, valuePerPackage: 3.00 }
+];
+
         const statusEl = document.getElementById('status');
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modal-title');
@@ -1216,6 +1267,44 @@
         const modalConfirm = document.getElementById('modal-confirm');
         const modalCancel = document.getElementById('modal-cancel');
 
+        function updateEstimatedGainAndEndTime() {
+    const totalStops = stops.length;
+    if (totalStops === 0) {
+        document.getElementById('estimated-gain').textContent = 'R$ 0,00';
+        return;
+    }
+
+    const completed = stops.filter(s => s.status === 'completed').length;
+    const completionPercent = (completed / totalStops) * 100;
+
+    // Valor por pacote conforme tabela
+    let valuePerPackage = 2.60;
+    if (completionPercent >= 97) valuePerPackage = 3.00;
+    else if (completionPercent >= 94) valuePerPackage = 2.80;
+
+    // Ganho estimado = por pacote entrega × valor atual (aumenta com % concluído)
+    
+    const estimatedGain = (completed * valuePerPackage).toFixed(2);
+
+    document.getElementById('estimated-gain').textContent = `R$ ${estimatedGain}`;
+
+    // Previsão de término (mantido)
+    const timeEl = document.getElementById('time');
+    const endEl = document.getElementById('estimated-end');
+
+    if (timeEl.textContent !== '—' && timeEl.textContent.trim() !== '') {
+        const totalMinutes = parseInt(timeEl.textContent) || 0;
+        const now = new Date();
+        const endTime = new Date(now.getTime() + totalMinutes * 60 * 1000);
+        
+        const hours = endTime.getHours().toString().padStart(2, '0');
+        const minutes = endTime.getMinutes().toString().padStart(2, '0');
+        endEl.textContent = `Previsão: ${hours}:${minutes}`;
+    } else {
+        endEl.textContent = 'Previsão: —';
+    }
+}
+
         // ────────────────────────────────────────────────
         // CARREGA PARADAS SALVAS DO LOCALSTORAGE
         // ────────────────────────────────────────────────
@@ -1223,6 +1312,7 @@
         if (saved) {
             try {
                 stops = JSON.parse(saved);
+                updateEstimatedGainAndEndTime();
                 // Garante que o status seja válido
                 stops = stops.map(stop => ({
                     ...stop,
@@ -1408,6 +1498,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
             }
 
             stops = stops.filter(s => s.status === 'completed').concat(newPending);
+            updateEstimatedGainAndEndTime();
         }
 
         // ────────────────────────────────────────────────
@@ -1483,6 +1574,8 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
             document.getElementById('stops').textContent = total;
             document.getElementById('progress').style.width = perc + '%';
             document.getElementById('progress-text').textContent = `${done}/${total}`;
+
+            updateEstimatedGainAndEndTime();
         }
 
         
@@ -1503,6 +1596,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
                     // Salva a foto em base64 na parada
                     stops[index].photo = event.target.result; // string base64
                     saveStops();
+                    updateEstimatedGainAndEndTime();
                     updateStopsList(); // atualiza visual (mostra ícone verde)
 
                   
@@ -1624,6 +1718,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
                 updateStopsList();
                 await updateMapAndUI();
                 saveStops();
+                updateEstimatedGainAndEndTime();
 
                 statusEl.textContent = stops[index].status === 'completed'
                     ? `Parada ${index + 1} concluída!`
@@ -1649,6 +1744,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
                 updateStopsList();
                 await updateMapAndUI();
                 saveStops();
+                updateEstimatedGainAndEndTime();
                 statusEl.textContent = 'Parada removida';
                 setTimeout(() => statusEl.textContent = 'Localização atualizada', 3000);
             } catch (err) {
@@ -1674,6 +1770,7 @@ document.getElementById('action-modal').addEventListener('click', (e) => {
                 updateStopsList();
                 await updateMapAndUI();
                 saveStops(); // salva após adicionar
+                updateEstimatedGainAndEndTime();
             } catch (err) {
                 alert('Não foi possível encontrar o endereço: ' + err.message);
             }
