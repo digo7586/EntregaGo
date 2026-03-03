@@ -815,8 +815,7 @@
     inset: 0;
     z-index: 1;
 }
-
-        .bottom-sheet {
+.bottom-sheet {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -833,24 +832,34 @@
     cursor: pointer;
 }
 
+/* Handle */
 .sheet-handle {
     width: 48px;
     height: 6px;
     background: #d1d5db;
     border-radius: 3px;
     margin: 12px auto;
+    cursor: grab;
 }
 
+/* Conteúdo */
 .sheet-content {
-    overflow-y: auto;
-    height: calc(90vh - 30px);
-    padding: 0 16px 80px; /* espaço para botão limpar embaixo */
-    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 30px);
 }
 
-/* Estados do sheet */
+/* Lista sempre rolável (como original) */
+#stops-list {
+    flex: 1;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
+}
+
+/* Estados */
 .bottom-sheet.collapsed {
-    transform: translateY(calc(100% - 180px)); /* mostra só header + poucas linhas */
+    transform: translateY(calc(100% - 180px)); /* recolhido */
 }
 
 .bottom-sheet.expanded {
@@ -2122,70 +2131,89 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
     });
 });
 
-// ====================== CONTROLE DO BOTTOM SHEET + FORÇA ROTA NO CELULAR ======================
+// ====================== BOTTOM SHEET - SCROLL SEMPRE + CLIQUE EXPANDE ======================
 
 const bottomSheet = document.getElementById('bottom-sheet');
 let startY = 0;
 let currentTranslate = 0;
 let prevTranslate = 0;
+let isDragging = false;
+let touchStartTime = 0;
 
 function touchStart(e) {
+    e.preventDefault();
     startY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
+    touchStartTime = Date.now();
+    isDragging = true;
     bottomSheet.style.transition = 'none';
 }
 
 function touchMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+
     const currentY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
     const delta = currentY - startY;
     currentTranslate = prevTranslate + delta;
 
+    // Limita
     if (currentTranslate < 0) currentTranslate = 0;
-    if (currentTranslate > window.innerHeight * 0.9) currentTranslate = window.innerHeight * 0.9;
+    if (currentTranslate > window.innerHeight * 0.92) currentTranslate = window.innerHeight * 0.92;
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
 }
 
-function touchEnd() {
-    bottomSheet.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
+function touchEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const deltaY = (e.type.includes('mouse') ? e.pageY : e.changedTouches[0].clientY) - startY;
+    const touchDuration = Date.now() - touchStartTime;
+
+    bottomSheet.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
     const sheetHeight = bottomSheet.offsetHeight;
-    const currentPos = bottomSheet.getBoundingClientRect().top;
 
-    if (currentPos < sheetHeight * 0.3) {
-        currentTranslate = 0; // expandido
+    // Clique rápido ou toque curto → EXPANDE totalmente
+    if (touchDuration < 300 || Math.abs(deltaY) < 40) {
+        currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
         bottomSheet.classList.add('expanded');
-    } else {
-        currentTranslate = sheetHeight - 180; // recolhido
+    } 
+    // Arrastou para baixo → recolhe
+    else if (deltaY > 60) {
+        currentTranslate = sheetHeight - 180;
         bottomSheet.classList.remove('expanded');
         bottomSheet.classList.add('collapsed');
+    } 
+    // Arrastou para cima → expande suavemente
+    else if (deltaY < -60) {
+        currentTranslate = 0;
+        bottomSheet.classList.remove('collapsed');
+        bottomSheet.classList.add('expanded');
+    } 
+    // Pequeno movimento → snap para expandido
+    else {
+        currentTranslate = 0;
+        bottomSheet.classList.remove('collapsed');
+        bottomSheet.classList.add('expanded');
     }
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
     prevTranslate = currentTranslate;
 
-    // === FORÇA REDESENHO DA ROTA NO CELULAR ===
+    // Força redesenho da rota
     setTimeout(() => {
         if (map) {
-            map.invalidateSize(); // recalcula tamanho
-
-            // Remove rota antiga se existir
-            if (routeLayer) {
-                map.removeLayer(routeLayer);
-                routeLayer = null;
-            }
-
-            // Recria TODA a rota do zero
-            updateMapAndUI(); // sua função que calcula OSRM, decodifica polyline e adiciona layer
-
-            console.log('Rota forçada a redesenhar após drag do sheet');
+            map.invalidateSize();
+            updateMapAndUI();
         }
-    }, 400); // delay para animação terminar + DOM atualizar
+    }, 450);
 }
 
-// Eventos
-bottomSheet.addEventListener('touchstart', touchStart);
-bottomSheet.addEventListener('touchmove', touchMove);
+// Eventos touch
+bottomSheet.addEventListener('touchstart', touchStart, { passive: false });
+bottomSheet.addEventListener('touchmove', touchMove, { passive: false });
 bottomSheet.addEventListener('touchend', touchEnd);
 
 bottomSheet.addEventListener('mousedown', touchStart);
@@ -2195,7 +2223,7 @@ bottomSheet.addEventListener('mouseup', touchEnd);
 // Inicial: recolhido
 bottomSheet.classList.add('collapsed');
 
-// Redesenha mapa em resize (já tem, mas reforça)
+// Resize
 window.addEventListener('resize', () => {
     if (map) map.invalidateSize();
 });
