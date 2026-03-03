@@ -1088,6 +1088,27 @@
         font-size: 0.8rem;
     }
 }
+
+        .status-toast {
+    position: fixed;
+    bottom: 100px; /* acima do bottom sheet recolhido */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1500;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    white-space: nowrap;
+}
+
+.status-toast.show {
+    opacity: 1;
+}
     </style>
 </head>
 
@@ -1183,7 +1204,7 @@
     </div>
 
     <!-- Status flutuante -->
-    <div id="status">Aguardando localização...</div>
+    <div id="status" class="status-toast">Localização atualizada</div>
 
     <!-- Modal genérico -->
     <div class="modal" id="modal">
@@ -2197,6 +2218,30 @@ bottomSheet.classList.add('collapsed');
 window.addEventListener('resize', () => {
     if (map) map.invalidateSize();
 });
+
+        // Função para mostrar mensagem temporária
+function showStatus(message, duration = 3000) {
+    const statusEl = document.getElementById('status');
+    if (!statusEl) return;
+
+    statusEl.textContent = message;
+    statusEl.classList.add('show');
+
+    // Esconde automaticamente após duration
+    setTimeout(() => {
+        statusEl.classList.remove('show');
+    }, duration);
+}
+
+// Substitua todas as linhas onde você usa statusEl.textContent por showStatus
+// Exemplo nos lugares onde você atualiza localização:
+showStatus('Localização atualizada', 2500); // some em 2.5 segundos
+
+// Em toggleComplete, addStop, updateMapAndUI, etc.:
+showStatus('Rota atualizada!', 2000);
+
+// Em erro:
+showStatus('Erro ao obter localização', 4000);
     </script>
 </body>
 
