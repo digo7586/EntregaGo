@@ -586,30 +586,7 @@
     overflow-y: auto !important;
 }
 
-        /* Impede scroll interno enquanto o sheet não está expandido */
-.bottom-sheet:not(.expanded) .sheet-content {
-    overflow-y: hidden !important;
-}
 
-.bottom-sheet.expanded .sheet-content {
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Cursor pointer para indicar que é clicável */
-.bottom-sheet {
-    cursor: pointer;
-}
-
-/* Handle (barrinha) continua clicável para arrastar */
-.sheet-handle {
-    width: 48px;
-    height: 6px;
-    background: #d1d5db;
-    border-radius: 3px;
-    margin: 12px auto;
-    cursor: grab;
-}
 
 @media (max-width: 768px) {
     .bottom-sheet {
@@ -841,7 +818,9 @@
     z-index: 1;
 }
 
-    .bottom-sheet {
+   
+
+.bottom-sheet {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -851,35 +830,49 @@
     border-top-left-radius: 24px;
     border-top-right-radius: 24px;
     box-shadow: 0 -8px 32px rgba(0,0,0,0.25);
-    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); /* animação suave e elástica */
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); /* suave e elástica */
     max-height: 92vh;
     overflow: hidden;
     touch-action: pan-y;
+    cursor: pointer; /* indica que é clicável */
 }
 
+/* Handle (barrinha) */
 .sheet-handle {
     width: 48px;
     height: 6px;
     background: #d1d5db;
     border-radius: 3px;
     margin: 12px auto;
+    cursor: grab;
 }
 
+/* Conteúdo */
 .sheet-content {
-    overflow-y: auto;
-    height: calc(90vh - 30px);
-    padding: 0 16px 80px; /* espaço para botão limpar embaixo */
+    height: calc(92vh - 30px);
+    padding: 0 16px 80px;
     -webkit-overflow-scrolling: touch;
 }
 
-/* Estados do sheet */
+/* Estados */
 .bottom-sheet.collapsed {
-    transform: translateY(calc(100% - 180px)); /* mostra só header + poucas linhas */
+    transform: translateY(calc(100% - 180px)); /* só header visível */
 }
 
 .bottom-sheet.expanded {
     transform: translateY(0);
 }
+
+/* Bloqueia scroll interno quando recolhido ou intermediário */
+.bottom-sheet:not(.expanded) .sheet-content {
+    overflow-y: hidden !important;
+}
+
+/* Libera scroll apenas quando totalmente expandido */
+.bottom-sheet.expanded .sheet-content {
+    overflow-y: auto !important;
+}
+
 
 /* Status flutuante acima do sheet */
 #status {
@@ -2146,8 +2139,7 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
     });
 });
 
-// ====================== CONTROLE DO BOTTOM SHEET + FORÇA ROTA NO CELULAR ======================
-// ====================== BOTTOM SHEET SUAVE + CLIQUE EXPANDE ======================
+// ====================== BOTTOM SHEET - CLIQUE EXPANDE + SCROLL SÓ QUANDO EXPANDIDO ======================
 
 const bottomSheet = document.getElementById('bottom-sheet');
 let startY = 0;
@@ -2157,7 +2149,7 @@ let isDragging = false;
 let touchStartTime = 0;
 
 function touchStart(e) {
-    e.preventDefault(); // evita scroll indesejado
+    e.preventDefault(); // evita scroll da página
     startY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
     touchStartTime = Date.now();
     isDragging = true;
@@ -2186,12 +2178,12 @@ function touchEnd(e) {
     const deltaY = (e.type.includes('mouse') ? e.pageY : e.changedTouches[0].clientY) - startY;
     const touchDuration = Date.now() - touchStartTime;
 
-    bottomSheet.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)'; // suave e elástico
+    bottomSheet.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
     const sheetHeight = bottomSheet.offsetHeight;
 
-    // Clique rápido (toque curto) → EXPANDE
-    if (touchDuration < 300 && Math.abs(deltaY) < 30) {
+    // Clique rápido ou toque curto → EXPANDE totalmente
+    if (touchDuration < 300 || Math.abs(deltaY) < 40) {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
         bottomSheet.classList.add('expanded');
@@ -2202,7 +2194,13 @@ function touchEnd(e) {
         bottomSheet.classList.remove('expanded');
         bottomSheet.classList.add('collapsed');
     } 
-    // Arrastou para cima ou pouco movimento → expande
+    // Arrastou para cima → expande suavemente
+    else if (deltaY < -60) {
+        currentTranslate = 0;
+        bottomSheet.classList.remove('collapsed');
+        bottomSheet.classList.add('expanded');
+    } 
+    // Pequeno movimento → snap para expandido
     else {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
@@ -2212,7 +2210,7 @@ function touchEnd(e) {
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
     prevTranslate = currentTranslate;
 
-    // Força redesenho da rota (já tem, mantido)
+    // Força redesenho da rota
     setTimeout(() => {
         if (map) {
             map.invalidateSize();
@@ -2221,18 +2219,22 @@ function touchEnd(e) {
     }, 450);
 }
 
-// Eventos touch (passive: false para preventDefault funcionar)
+// Eventos touch (passive: false para preventDefault funcionar bem)
 bottomSheet.addEventListener('touchstart', touchStart, { passive: false });
 bottomSheet.addEventListener('touchmove', touchMove, { passive: false });
 bottomSheet.addEventListener('touchend', touchEnd);
 
-// Suporte mouse (teste desktop)
 bottomSheet.addEventListener('mousedown', touchStart);
 bottomSheet.addEventListener('mousemove', touchMove);
 bottomSheet.addEventListener('mouseup', touchEnd);
 
 // Inicial: recolhido
 bottomSheet.classList.add('collapsed');
+
+// Resize
+window.addEventListener('resize', () => {
+    if (map) map.invalidateSize();
+});
     </script>
 </body>
 
