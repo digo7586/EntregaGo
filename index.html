@@ -846,40 +846,39 @@
     cursor: grab;
 }
 
-/* Conteúdo principal - flex para distribuir espaço */
+/* Conteúdo */
 .sheet-content {
     display: flex;
     flex-direction: column;
-    height: calc(100% - 30px); /* subtrai handle */
+    height: calc(100% - 30px);
     overflow: hidden;
 }
 
-/* Header não rola */
-.sheet-header {
-    flex-shrink: 0;
-    padding: 0 16px;
+/* Lista de paradas - scroll controlado */
+#stops-list {
+    flex: 1;
+    overflow-y: hidden !important; /* padrão bloqueado */
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
 }
 
-/* Lista de paradas - só essa parte rola */
-#stops-list {
-    flex: 1;                    /* cresce e ocupa espaço restante */
+/* Libera scroll quando o sheet está na metade ou mais expandido */
+.bottom-sheet.expanded #stops-list,
+.bottom-sheet.intermediate #stops-list {
     overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;       /* espaço para botão limpar */
 }
 
 /* Estados */
 .bottom-sheet.collapsed {
-    transform: translateY(calc(100% - 180px));
+    transform: translateY(calc(100% - 180px)); /* recolhido total */
 }
 
-/* Libera scroll SOMENTE quando expandido */
-.bottom-sheet.expanded #stops-list {
-    overflow-y: auto !important;
+.bottom-sheet.intermediate {
+    transform: translateY(calc(100% - 50vh)); /* metade da tela visível */
 }
 
-.bottom-sheet:not(.expanded) #stops-list {
-    overflow-y: hidden !important;
+.bottom-sheet.expanded {
+    transform: translateY(0); /* full expandido */
 }
 
 /* Status flutuante acima do sheet */
@@ -2147,7 +2146,7 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
     });
 });
 
-// ====================== BOTTOM SHEET - CLIQUE EXPANDE SUAVE + SCROLL SÓ EXPANDIDO ======================
+// ====================== BOTTOM SHEET - SCROLL SÓ A PARTIR DA METADE ======================
 
 const bottomSheet = document.getElementById('bottom-sheet');
 let startY = 0;
@@ -2157,7 +2156,7 @@ let isDragging = false;
 let touchStartTime = 0;
 
 function touchStart(e) {
-    e.preventDefault(); // evita scroll da página
+    e.preventDefault();
     startY = e.type.includes('mouse') ? e.pageY : e.touches[0].clientY;
     touchStartTime = Date.now();
     isDragging = true;
@@ -2172,11 +2171,19 @@ function touchMove(e) {
     const delta = currentY - startY;
     currentTranslate = prevTranslate + delta;
 
-    // Limita o movimento
+    // Limita
     if (currentTranslate < 0) currentTranslate = 0;
     if (currentTranslate > window.innerHeight * 0.92) currentTranslate = window.innerHeight * 0.92;
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
+
+    // Atualiza classe intermediária (libera scroll a partir da metade)
+    const halfScreen = window.innerHeight * 0.5;
+    if (currentTranslate < halfScreen) {
+        bottomSheet.classList.add('intermediate');
+    } else {
+        bottomSheet.classList.remove('intermediate');
+    }
 }
 
 function touchEnd(e) {
@@ -2186,8 +2193,7 @@ function touchEnd(e) {
     const deltaY = (e.type.includes('mouse') ? e.pageY : e.changedTouches[0].clientY) - startY;
     const touchDuration = Date.now() - touchStartTime;
 
-    // Animação suave e elástica
-    bottomSheet.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)';
+    bottomSheet.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
     const sheetHeight = bottomSheet.offsetHeight;
 
@@ -2195,56 +2201,40 @@ function touchEnd(e) {
     if (touchDuration < 300 || Math.abs(deltaY) < 40) {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
-        bottomSheet.classList.add('expanded');
-        
-        // Força liberação de scroll imediatamente
-        document.querySelector('#stops-list').style.overflowY = 'auto';
+        bottomSheet.classList.add('expanded', 'intermediate');
     } 
     // Arrastou para baixo → recolhe
     else if (deltaY > 60) {
         currentTranslate = sheetHeight - 180;
-        bottomSheet.classList.remove('expanded');
+        bottomSheet.classList.remove('expanded', 'intermediate');
         bottomSheet.classList.add('collapsed');
-        
-        // Bloqueia scroll ao recolher
-        document.querySelector('#stops-list').style.overflowY = 'hidden';
     } 
-    // Arrastou para cima → expande suavemente
+    // Arrastou para cima → expande
     else if (deltaY < -60) {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
-        bottomSheet.classList.add('expanded');
-        
-        // Libera scroll
-        document.querySelector('#stops-list').style.overflowY = 'auto';
+        bottomSheet.classList.add('expanded', 'intermediate');
     } 
     // Pequeno movimento → snap para expandido
     else {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
-        bottomSheet.classList.add('expanded');
-        
-        // Libera scroll
-        document.querySelector('#stops-list').style.overflowY = 'auto';
+        bottomSheet.classList.add('expanded', 'intermediate');
     }
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
     prevTranslate = currentTranslate;
 
-    // Força redesenho da rota e scroll
+    // Força redesenho da rota
     setTimeout(() => {
         if (map) {
             map.invalidateSize();
             updateMapAndUI();
         }
-        // Reforça scroll após animação
-        if (bottomSheet.classList.contains('expanded')) {
-            document.querySelector('#stops-list').style.overflowY = 'auto';
-        }
-    }, 500);
+    }, 450);
 }
 
-// Eventos touch (passive: false para evitar scroll indesejado)
+// Eventos touch
 bottomSheet.addEventListener('touchstart', touchStart, { passive: false });
 bottomSheet.addEventListener('touchmove', touchMove, { passive: false });
 bottomSheet.addEventListener('touchend', touchEnd);
