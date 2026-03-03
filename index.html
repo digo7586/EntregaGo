@@ -851,36 +851,24 @@
     display: flex;
     flex-direction: column;
     height: calc(100% - 30px);
-    overflow: hidden;
 }
 
-/* Lista de paradas - scroll controlado */
+/* Lista sempre rolável (como antes) */
 #stops-list {
     flex: 1;
-    overflow-y: hidden !important; /* padrão bloqueado */
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 80px;
 }
 
-/* Libera scroll quando o sheet está na metade ou mais expandido */
-.bottom-sheet.expanded #stops-list,
-.bottom-sheet.intermediate #stops-list {
-    overflow-y: auto !important;
-}
-
 /* Estados */
 .bottom-sheet.collapsed {
-    transform: translateY(calc(100% - 180px)); /* recolhido total */
-}
-
-.bottom-sheet.intermediate {
-    transform: translateY(calc(100% - 50vh)); /* metade da tela visível */
+    transform: translateY(calc(100% - 180px)); /* recolhido */
 }
 
 .bottom-sheet.expanded {
-    transform: translateY(0); /* full expandido */
+    transform: translateY(0);
 }
-
 /* Status flutuante acima do sheet */
 #status {
     position: fixed;
@@ -2146,7 +2134,7 @@ document.getElementById('search-stops').addEventListener('input', function(e) {
     });
 });
 
-// ====================== BOTTOM SHEET - SCROLL SÓ A PARTIR DA METADE ======================
+// ====================== BOTTOM SHEET - CLIQUE EXPANDE + SCROLL SEMPRE ATIVO ======================
 
 const bottomSheet = document.getElementById('bottom-sheet');
 let startY = 0;
@@ -2176,14 +2164,6 @@ function touchMove(e) {
     if (currentTranslate > window.innerHeight * 0.92) currentTranslate = window.innerHeight * 0.92;
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
-
-    // Atualiza classe intermediária (libera scroll a partir da metade)
-    const halfScreen = window.innerHeight * 0.5;
-    if (currentTranslate < halfScreen) {
-        bottomSheet.classList.add('intermediate');
-    } else {
-        bottomSheet.classList.remove('intermediate');
-    }
 }
 
 function touchEnd(e) {
@@ -2201,25 +2181,25 @@ function touchEnd(e) {
     if (touchDuration < 300 || Math.abs(deltaY) < 40) {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
-        bottomSheet.classList.add('expanded', 'intermediate');
+        bottomSheet.classList.add('expanded');
     } 
     // Arrastou para baixo → recolhe
     else if (deltaY > 60) {
         currentTranslate = sheetHeight - 180;
-        bottomSheet.classList.remove('expanded', 'intermediate');
+        bottomSheet.classList.remove('expanded');
         bottomSheet.classList.add('collapsed');
     } 
-    // Arrastou para cima → expande
+    // Arrastou para cima → expande suavemente
     else if (deltaY < -60) {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
-        bottomSheet.classList.add('expanded', 'intermediate');
+        bottomSheet.classList.add('expanded');
     } 
     // Pequeno movimento → snap para expandido
     else {
         currentTranslate = 0;
         bottomSheet.classList.remove('collapsed');
-        bottomSheet.classList.add('expanded', 'intermediate');
+        bottomSheet.classList.add('expanded');
     }
 
     bottomSheet.style.transform = `translateY(${currentTranslate}px)`;
